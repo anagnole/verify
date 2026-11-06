@@ -80,8 +80,14 @@ export function registerWorker(socket: WebSocket) {
     connectedAt: Date.now(),
     pending: new Map(),
   };
+  socket.on("error", (error) => console.log(`worker socket error: ${error.message}`));
   socket.on("message", (raw) => {
-    const message = JSON.parse(String(raw)) as FromWorker;
+    let message: FromWorker;
+    try {
+      message = JSON.parse(String(raw)) as FromWorker;
+    } catch {
+      return;
+    }
     if (message.type === "hello") {
       worker.info = message.info;
       workers.set(worker.id, worker);
