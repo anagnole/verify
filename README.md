@@ -29,7 +29,7 @@ flowchart LR
 ```
 
 1. **The agent runs `verify "added a delete button to each item"`.** The CLI packs the git working tree (tracked and untracked files, never `.env*`), the diff against `main` and the repo's `verify.yml`, uploads them and waits.
-2. **The queue picks a sandbox.** Waiting agents go before webhooks, cheap checks before expensive ones (Android only runs after web passed), a newer `verify` from the same branch replaces the older one, and a job for several platforms fans out into parallel runs. Runs are packed onto workers by CPU and memory, preferring a worker that already has the repo's saved image. When a run has waited 30 seconds, the control VM creates another worker from a snapshot through the Vultr API (it joins in about 7 minutes), and destroys it after 5 idle minutes.
+2. **The queue picks a sandbox.** Waiting agents go before webhooks, cheap checks before expensive ones (Android only runs after web passed), a newer `verify` from the same branch replaces the older one, and a job for several platforms fans out into parallel runs. Runs are packed onto workers by CPU and memory, preferring a worker that already has the repo's saved image. When a run has waited 30 seconds, the control VM creates another worker from a snapshot through the Vultr API (it joins in 7 to 11 minutes), and destroys it after 5 idle minutes.
 3. **The worker prepares the app.** The first run for a repo and lockfile installs dependencies inside the sandbox and saves the result as an image, so later runs start warm (anything the install tried to reach is stored with the image and reported again on every warm run). Every run still gets a fresh container. For Android, an Android 14 emulator boots inside the same sandbox from a saved state, installs the app's debug build, and loads the changed JavaScript from Metro, so JS-only changes need no native rebuild.
 4. **The verifier agent tests it** (Vultr Serverless Inference). It reads the diff and what is on screen (accessibility tree and the list of interactive elements), writes a scenario with expected results and edge cases before anything runs, and turns it into a script: Playwright for web, a Maestro flow for Android. The script only acts and takes screenshots; it never decides pass or fail. If the script itself breaks before it gets anywhere, the verifier fixes it once. If it breaks partway and nothing has failed so far, the verifier rewrites it and runs every check again before it gives a verdict. After the scenario the app sits idle for 10 seconds while memory is sampled.
 5. **It judges the evidence.** The vision model reads every step's screenshot against the planned checks, together with measured facts: blocked network attempts, memory peak, crashes, console errors. Verdict: pass, fail or couldn't verify, with steps to reproduce.
@@ -126,7 +126,7 @@ Exit code 0 means it passed. Otherwise read the report, fix the problem and run 
 
 - Apps that need a login or a real backend don't work yet: the sandbox holds no secrets and can only reach hosts listed under `allow:`. Test logins injected at the proxy are the next step.
 - iOS needs macOS, which Vultr doesn't offer.
-- An autoscaled worker takes about 7 minutes to restore from its snapshot.
+- An autoscaled worker takes 7 to 11 minutes to restore from its snapshot, so bursts wait on the always-on worker first.
 - The verifier is a model: it picks slightly different checks each run. Its verdicts come with the screenshots so you can check them.
 
 ## Run it yourself
