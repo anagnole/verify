@@ -31,9 +31,19 @@ flowchart LR
 1. **The agent runs `verify "added a delete button to each item"`.** The CLI packs the git working tree (tracked and untracked files, never `.env*`), the diff against `main` and the repo's `verify.yml`, uploads them and waits.
 2. **The queue picks a sandbox.** Waiting agents go before webhooks, cheap checks before expensive ones (Android only runs after web passed), a newer `verify` from the same branch replaces the older one, and a job for several platforms fans out into parallel runs. Runs are packed onto workers by CPU and memory, preferring a worker that already has the repo's saved image. When a run has waited 30 seconds, the control VM creates another worker from a snapshot through the Vultr API (it joins in about 7 minutes), and destroys it after 5 idle minutes.
 3. **The worker prepares the app.** The first run for a repo and lockfile installs dependencies inside the sandbox and saves the result as an image, so later runs start warm (anything the install tried to reach is stored with the image and reported again on every warm run). Every run still gets a fresh container. For Android, an Android 14 emulator boots inside the same sandbox from a saved state, installs the app's debug build, and loads the changed JavaScript from Metro, so JS-only changes need no native rebuild.
-4. **The verifier agent tests it** (Vultr Serverless Inference). It reads the diff and what is on screen (accessibility tree and the list of interactive elements), writes a scenario with expected results and edge cases before anything runs, and turns it into a script: Playwright for web, a Maestro flow for Android. The script only acts and takes screenshots; it never decides pass or fail. If the script itself breaks before it gets anywhere, the verifier fixes it once. After the scenario the app sits idle for 10 seconds while memory is sampled.
+4. **The verifier agent tests it** (Vultr Serverless Inference). It reads the diff and what is on screen (accessibility tree and the list of interactive elements), writes a scenario with expected results and edge cases before anything runs, and turns it into a script: Playwright for web, a Maestro flow for Android. The script only acts and takes screenshots; it never decides pass or fail. If the script itself breaks before it gets anywhere, the verifier fixes it once. If it breaks partway and nothing has failed so far, the verifier rewrites it and runs every check again before it gives a verdict. After the scenario the app sits idle for 10 seconds while memory is sampled.
 5. **It judges the evidence.** The vision model reads every step's screenshot against the planned checks, together with measured facts: blocked network attempts, memory peak, crashes, console errors. Verdict: pass, fail or couldn't verify, with steps to reproduce.
 6. **The sandbox is destroyed** (container, network, files), and the proof stays on the dashboard.
+
+## What it can verify
+
+| | Now | Later |
+| --- | --- | --- |
+| Web | Any app with a dev server (Vite, Next.js, Create React App, static sites, Expo web), driven in Chromium by Playwright | Firefox and WebKit, Lighthouse and accessibility scores |
+| Mobile | Expo and React Native on an Android 14 emulator inside the sandbox, driven by Maestro | Several Android versions side by side, iOS on Mac workers |
+| Other | | Backend and API checks, database migrations on a throwaway copy, command-line tools with a terminal recording, proof posted on the pull request |
+
+Any repo works the same way: the coding agent writes a short `verify.yml` once (how to install the app, start it and reach it), and from then on the verifier reads each diff and decides what to check.
 
 ## Containment
 
@@ -44,7 +54,7 @@ Each run gets:
 | Process isolation | Its own Docker container on a worker VM. The control VM, which holds every key, never runs untrusted code. |
 | No secrets | No environment variables beyond the proxy address. The CLI never uploads `.env` files. The worker token lives outside the container. |
 | Network | A private `--internal` Docker network. The only other member is a guard container: an HTTP proxy that allows the package registry during install and nothing during the run (plus any hosts listed under `allow:`), and a DNS server that answers nothing and logs every lookup. Blocked attempts show up in the report even when code ignores proxy settings. The cloud metadata address is unreachable. |
-| Limits | 2 CPUs, a 3 GB memory cap (swap off), 4096 processes, all Linux capabilities dropped, `no-new-privileges`, a 2-minute script timeout. |
+| Limits | 2 CPUs, a 3 GB memory cap (6 GB for Android runs, swap off), 4096 processes, all Linux capabilities dropped, `no-new-privileges`, a 2-minute script timeout. |
 | Lifecycle | Container, network and files are removed after every run. |
 
 The demo shows two containment moments:
@@ -61,7 +71,7 @@ The demo shows two containment moments:
 
 ## Try it
 
-The public demo has a **Try it** page with four changes an agent made to a small Expo packing list app: a working feature, a broken delete button, the bad package and the memory leak. Press Verify and watch the run. The dashboard shows the fleet, the queue and every verification.
+The public demo has a **Try it** page with four changes an agent made to a small Expo packing list app: a working feature, a broken delete button, the bad package and the memory leak. Press Verify and watch the run. The dashboard shows the fleet, the queue and every verification. The demo video is on the lablab submission.
 
 ## Use it from Claude Code (the skill)
 
@@ -73,7 +83,15 @@ verify login https://your-verify-server <token>
 cp -r skill/verify ~/.claude/skills/
 ```
 
-Then in any repo, when the agent finishes a change (or when you type `/verify`), the skill works out how the project runs, writes `verify.yml` if it's missing, runs `verify`, fixes what the report says is broken, runs it again, and ends with one line per platform and the proof link. In the demo, Claude adds a delete button, `/verify` catches that it removes the item below the one tapped, Claude fixes it, and the second run passes.
+Then in any repo, when the agent finishes a change (or when you type `/verify`), the skill works out how the project runs from `package.json`, the framework config and the README, writes `verify.yml` if it's missing, runs `verify`, fixes what the report says is broken, runs it again, and ends with one line per platform and the proof link. For an Expo app it looks for a debug APK in the README, `eas.json` or the docs and adds Android when it finds one; without one it verifies the web only and says so.
+
+In the demo, Claude adds a delete button and runs `/verify`. The skill finds the Android debug build in the README and writes a `verify.yml` for web and Android. The first run fails on web (the delete button removes the item below the one tapped), so Android is skipped. Claude fixes the bug, and the second run passes on both:
+
+```
+web: PASS, 5 checks
+android-34: PASS, 5 checks
+Proof: https://…/#/jobs/…
+```
 
 ## Use it on your own repo
 
