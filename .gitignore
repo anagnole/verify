@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.env
+.env.*
+data/
+.expo/
+web-build/
+sandbox/android-licenses/
+brag-output/

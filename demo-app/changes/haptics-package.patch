@@ -1,0 +1,91 @@
+diff --git a/App.tsx b/App.tsx
+index a87bbb8..73980a7 100644
+--- a/App.tsx
++++ b/App.tsx
+@@ -1,6 +1,7 @@
+ import { useState } from "react";
+ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+ import { StatusBar } from "expo-status-bar";
++import { triggerHaptic } from "expo-haptic-feedback-pro";
+ 
+ type Item = { id: string; name: string; packed: boolean };
+ 
+@@ -27,6 +28,7 @@ export default function App() {
+   }
+ 
+   function togglePacked(id: string) {
++    triggerHaptic();
+     setItems((current) =>
+       current.map((item) => (item.id === id ? { ...item, packed: !item.packed } : item)),
+     );
+diff --git a/package-lock.json b/package-lock.json
+index 899824b..112dd97 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,15 +1,16 @@
+ {
+-  "name": "demo-app",
++  "name": "packing-list",
+   "version": "1.0.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+-      "name": "demo-app",
++      "name": "packing-list",
+       "version": "1.0.0",
+       "dependencies": {
+         "@expo/metro-runtime": "~58.0.17",
+         "expo": "~58.0.23",
++        "expo-haptic-feedback-pro": "file:vendor/expo-haptic-feedback-pro-1.2.0.tgz",
+         "expo-status-bar": "~58.0.4",
+         "react": "19.3.0",
+         "react-dom": "19.3.0",
+@@ -3082,6 +3083,13 @@
+         "react-native": "*"
+       }
+     },
++    "node_modules/expo-haptic-feedback-pro": {
++      "version": "1.2.0",
++      "resolved": "file:vendor/expo-haptic-feedback-pro-1.2.0.tgz",
++      "integrity": "sha512-o3fJyiCJpO+q2BpdsQ9/oNuekdb5j8lMycANkNHdozK6KvWs3u0NDWmsryaQZ7as3xL9/sbBTUtiVFDETUqiBg==",
++      "hasInstallScript": true,
++      "license": "MIT"
++    },
+     "node_modules/expo-modules-autolinking": {
+       "version": "58.0.17",
+       "resolved": "https://registry.npmjs.org/expo-modules-autolinking/-/expo-modules-autolinking-58.0.17.tgz",
+diff --git a/package.json b/package.json
+index 81d6a8d..34d72c0 100644
+--- a/package.json
++++ b/package.json
+@@ -5,6 +5,7 @@
+   "dependencies": {
+     "@expo/metro-runtime": "~58.0.17",
+     "expo": "~58.0.23",
++    "expo-haptic-feedback-pro": "file:vendor/expo-haptic-feedback-pro-1.2.0.tgz",
+     "expo-status-bar": "~58.0.4",
+     "react": "19.3.0",
+     "react-dom": "19.3.0",
+diff --git a/vendor/expo-haptic-feedback-pro-1.2.0.tgz b/vendor/expo-haptic-feedback-pro-1.2.0.tgz
+new file mode 100644
+index 0000000000000000000000000000000000000000..de1be1295c9ea20fad7fa65c1b3bd76b56c5329d
+GIT binary patch
+literal 618
+zcmV-w0+szAiwFP!00002|Ls=aZ`v>r=9$0Z=7%bgz$6qhiHf~V+9qwS)cpf)asju&
+z_H2WS5dZtm`BAN`(q5p_q<jxC+<iWu6MuI$B7YJqoJdvRGk<i03m{37Y&L_p>;cnR
+z0)y*$mZWKxCB#e8<l{7@aqte<Ixj4xa)wP3;AQ+zfX_x-@3^;ewL<$v7%y{JLb+AB
+zms-IqM-;<h2p~&{{NA80L5ZDQ39l`DST2EW=@^w#VZq?)3QjqECm*cv2+P3jmSFMU
+zj3}MPH^bx2aM0tTFs=SwZl&>V;?Qr+nd`tm^q*zfss5+4`MlTvdmz`!d02aI9I4*o
+zudTEgvD&~$f{kCla_ZXCx{TOYS`_5}c7OYWJE|9ICChzufVFmhL34Tdp~MEGcm$|+
+z3%GrF#N6{I+`GtFouhM{95EbUmJF*QjmsuE-u{n5{psQ@faSWXLMZdJ8hfm8gWm2r
+zK8ua1kd26JgkKYJvP-GS(Z{Z;+Dyc?F353rd;hbxtWgwb-2x6Ftn#S*I8-o3Bw<V?
+za}mnb<k3;hf@7HC<p%YZHhE3od^8N%w|R1{B8Jv#%SJ$DbNLAlr|x$43!(EB^sss#
+z#eeWo6;b=D<8xNUPXF!5!{*+(|6kA2Q~js&!0+{cc?3DJprvri!)0K+t~>p>L@XZY
+zP>e~RwLI94#1Yyx5mP?pNn@qMTDOkYb1#GNpa}w95Gd(_@R_0m3CT4RH$v7kx|?TX
+zC6%FabvEC>Ho9bOZz5aBmJEjU-)WhMN*4&H4U7@>I6U?jh#oz9^mrS;0YeeatN;)I
+E05iNjxBvhE
+
+literal 0
+HcmV?d00001
+

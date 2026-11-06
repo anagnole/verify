@@ -1,0 +1,7 @@
+install: npm install --no-audit --no-fund
+start: npx expo start --web --port 8081
+ready: http://localhost:8081
+platforms: [web]
+android_apk: https://108-61-179-156.sslip.io/api/files/packing-list-debug.apk
+android_package: com.verify.packinglist
+android_start: npx expo start --port 8081
